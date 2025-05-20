@@ -1,0 +1,29 @@
+name: Update files.json
+
+on:
+  push:
+    paths:
+      - 'markdown_files/**'
+    branches: [ main ]
+
+jobs:
+  update-files-json:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Update files.json
+        run: |
+          files=$(ls -1 markdown_files | grep '\.md$' | grep -v '^\._' | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "{\"files\": $files}" > files.json
+
+      - name: Commit and push if changed
+        run: |
+          git config --global user.name 'GitHub Action'
+          git config --global user.email 'action@github.com'
+          git add files.json
+          git diff --quiet && git diff --staged --quiet || git commit -m "Auto-update files.json"
+          git push 
